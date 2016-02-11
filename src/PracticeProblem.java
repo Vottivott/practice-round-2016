@@ -13,6 +13,35 @@ import java.util.stream.Collectors;
 
 public class PracticeProblem {
 
+    static class Point {
+        public Point(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        int x, y;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Point point = (Point) o;
+
+            if (x != point.x) return false;
+            return y == point.y;
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = x;
+            result = 31 * result + y;
+            return result;
+        }
+    }
+
+
     enum State {
         DONT_PAINT,
         DO_PAINT,
@@ -22,19 +51,36 @@ public class PracticeProblem {
     static int w, h;
     static State[][] picture;
     static List<Command> commands = new ArrayList<>();
+    static List<List<Command>> squareGroupings;
+    static List<Command> oneXoneSquares;
 
     public static void main(String[] args) {
-        //parseData("right_angle.in");
-        //parseData("learn_and_teach.in");
-        parseData("logo.in");
+        solve("learn_and_teach.in");
+        solve("right_angle.in");
+        solve("logo.in");
+    }
 
-        List<List<Command>> squareGroupings = new ArrayList<>();
+    private static void resetStaticState(boolean resetCells) {
+        w = -1;
+        h = -1;
+        picture = null;
+        commands = new ArrayList<>();
+        squareGroupings = new ArrayList<>();
+        if (resetCells) {
+            oneXoneSquares = new ArrayList<>();
+        }
+    }
+
+    public static void solve(String filename) {
+
+        resetStaticState(true);
+        parseData(filename);
 
         //
         // Create 1x1 squares
         //
 
-        List<Command> oneXoneSquares = new ArrayList<>();
+        oneXoneSquares = new ArrayList<>();
         squareGroupings.add(oneXoneSquares);
 
         for (int r = 0; r < w; r++) {
@@ -113,72 +159,65 @@ public class PracticeProblem {
             size += 1;
         }
 
-        //
-        // FILL square groups, biggest down to 3x3
-        //
 
-        final int smallestSizeToInclude = 3;
-        for (int i = squareGroupings.size() - 1; i >= smallestSizeToInclude - 2; i--) {
 
-            List<Command> squaresToFill = squareGroupings.get(i);
-            for (int j = 0; j < squaresToFill.size(); j++) {
-            //for (int j = squaresToFill.size() - 1; j >= 0; j--) {
-                Command c = squaresToFill.get(j);
-
-                // Check if it's still possible to place this one (only corners are enough)
-                if (picture[c.getY() - c.getS()][c.getX() + c.getS()] == State.DO_PAINT &&
-                    picture[c.getY() + c.getS()][c.getX() + c.getS()] == State.DO_PAINT &&
-                    picture[c.getY() + c.getS()][c.getX() - c.getS()] == State.DO_PAINT &&
-                    picture[c.getY() - c.getS()][c.getX() - c.getS()] == State.DO_PAINT) {
-
-                    // Paint this square (in picture and add command)
-                    commands.add(c);
-                    c.paint(picture);
-
-                    //int actualSize = i + 1 + i;
-                    //System.out.println(" - " + actualSize + "x" + actualSize + " square added:");
-                    //printPicture();
-
-                }
-
+        fillSquareGroups();
+        findAndFillLines();
+        // Fill all empty spots
+        for (Command cell: oneXoneSquares) {
+            if (picture[cell.getY()][cell.getX()] == State.DO_PAINT) {
+                cell.paint(picture);
+                commands.add(cell);
             }
-
         }
 
-        //
-        // FIND lines
-        //
-        do {
+        // Reset state
+        ArrayList<Command> squareLineSolution = new ArrayList<>(commands);
+        resetStaticState(false);
+        parseData(filename);
 
-            List<PaintLine> possibleLines = new ArrayList<>();
+        findAndFillLines();
+        // Fill all empty spots
+        for (Command cell: oneXoneSquares) {
+            if (picture[cell.getY()][cell.getX()] == State.DO_PAINT) {
+                cell.paint(picture);
+                commands.add(cell);
+            }
+        }
 
-            class Point {
-                public Point(int x, int y) {
-                    this.x = x;
-                    this.y = y;
+        ArrayList<Command> lineSolution = new ArrayList<>(commands);
+
+
+        System.out.println("Square line solution: " + squareLineSolution.size());
+        System.out.println("Line solution: " + lineSolution.size());
+
+        if (squareLineSolution.size() > lineSolution.size()) {
+            commands = squareLineSolution;
+        }
+
+        System.out.println("Finally:");
+        printPicture();
+
+        writeData(filename + ".out");
+    }
+
+    public static boolean linesFinished(List<Command> cells) {
+        for (Command cell : cells) {
+            if (picture[cell.getY()][cell.getX()] == State.DO_PAINT) {
+                if (cell.getY() + 1 < h && picture[cell.getY() + 1][cell.getX()] == State.DO_PAINT) {
+                    return false;
                 }
-
-                int x, y;
-
-                @Override
-                public boolean equals(Object o) {
-                    if (this == o) return true;
-                    if (o == null || getClass() != o.getClass()) return false;
-
-                    Point point = (Point) o;
-
-                    if (x != point.x) return false;
-                    return y == point.y;
-
-                }
-
-                @Override
-                public int hashCode() {
-                    int result = x;
-                    result = 31 * result + y;
-                    return result;
+                if (cell.getX() + 1 < w && picture[cell.getY()][cell.getX() + 1] == State.DO_PAINT) {
+                    return false;
                 }
             }
+        }
+        return true;
+    }
+
+    public static void findAndFillLines() {
+        do {
+            List<PaintLine> possibleLines = new ArrayList<>();
 
             HashSet<Point> partOfHorizontalLine = new HashSet<>();
             HashSet<Point> partOfVerticalLine = new HashSet<>();
@@ -286,35 +325,36 @@ public class PracticeProblem {
 
             }
         } while (!linesFinished(oneXoneSquares));
-
-        //
-        // Fill all empty spots
-        //
-        for (Command cell: oneXoneSquares) {
-            if (picture[cell.getY()][cell.getX()] == State.DO_PAINT) {
-                cell.paint(picture);
-                commands.add(cell);
-            }
-        }
-
-        System.out.println("Finally:");
-        printPicture();
-
-        writeData("submission.txt");
     }
 
-    public static boolean linesFinished(List<Command> cells) {
-        for (Command cell : cells) {
-            if (picture[cell.getY()][cell.getX()] == State.DO_PAINT) {
-                if (cell.getY() + 1 < h && picture[cell.getY() + 1][cell.getX()] == State.DO_PAINT) {
-                    return false;
+    public static void fillSquareGroups() {
+        final int smallestSizeToInclude = 3;
+        for (int i = squareGroupings.size() - 1; i >= smallestSizeToInclude - 2; i--) {
+
+            List<Command> squaresToFill = squareGroupings.get(i);
+            for (int j = 0; j < squaresToFill.size(); j++) {
+                //for (int j = squaresToFill.size() - 1; j >= 0; j--) {
+                Command c = squaresToFill.get(j);
+
+                // Check if it's still possible to place this one (only corners are enough)
+                if (picture[c.getY() - c.getS()][c.getX() + c.getS()] == State.DO_PAINT &&
+                        picture[c.getY() + c.getS()][c.getX() + c.getS()] == State.DO_PAINT &&
+                        picture[c.getY() + c.getS()][c.getX() - c.getS()] == State.DO_PAINT &&
+                        picture[c.getY() - c.getS()][c.getX() - c.getS()] == State.DO_PAINT) {
+
+                    // Paint this square (in picture and add command)
+                    commands.add(c);
+                    c.paint(picture);
+
+                    //int actualSize = i + 1 + i;
+                    //System.out.println(" - " + actualSize + "x" + actualSize + " square added:");
+                    //printPicture();
+
                 }
-                if (cell.getX() + 1 < w && picture[cell.getY()][cell.getX() + 1] == State.DO_PAINT) {
-                    return false;
-                }
+
             }
+
         }
-        return true;
     }
 
     public static void parseData(String filename) {
