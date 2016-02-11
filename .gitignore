@@ -1,0 +1,9 @@
+# OS files
+.DS_Store
+
+# IntelliJ IDEA
+.idea/workspace.xml
+.idea/tasks.xml
+
+# Class files
+*.class
