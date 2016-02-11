@@ -11,18 +11,33 @@ public class PaintSquare implements Command {
 
     @Override
     public String toString() {
-        return "PAINT_SQUARE " + r + " " + c + " " + s;
+        return "PAINT_SQUARE " + c + " " + r + " " + s;
     }
 
     @Override
-    public void paint(boolean[][] wall) {
+    public void paint(PracticeProblem.State[][] wall) {
         int startX = r - s;
         int startY = c - s;
         int side = 2*s + 1;
         for (int x = startX; x < startX+side; x++) {
             for (int y = startY; y < startY+side; y++) {
-                wall[y][x] = true;
+                wall[y][x] = PracticeProblem.State.PAINTED;
             }
         }
+    }
+
+    @Override
+    public int getX() {
+        return r;
+    }
+
+    @Override
+    public int getY() {
+        return c;
+    }
+
+    @Override
+    public int getS() {
+        return s;
     }
 }

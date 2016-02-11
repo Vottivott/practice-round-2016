@@ -1,3 +1,9 @@
+
 public interface Command {
-    void paint(boolean[][] wall);
+
+    int getX();
+    int getY();
+    int getS();
+
+    abstract void paint(PracticeProblem.State[][] wall);
 }

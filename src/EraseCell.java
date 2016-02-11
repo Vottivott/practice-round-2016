@@ -9,11 +9,26 @@ public class EraseCell implements Command {
 
     @Override
     public String toString() {
-        return "ERASE_CELL " + r + " " + c;
+        return "ERASE_CELL " + c + " " + r;
     }
 
     @Override
-    public void paint(boolean[][] wall) {
-        wall[c][r] = false;
+    public void paint(PracticeProblem.State[][] wall) {
+        wall[c][r] = PracticeProblem.State.DONT_PAINT;
+    }
+
+    @Override
+    public int getX() {
+        return r;
+    }
+
+    @Override
+    public int getY() {
+        return c;
+    }
+
+    @Override
+    public int getS() {
+        return 1;
     }
 }
